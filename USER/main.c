@@ -3,6 +3,7 @@
 #include "led.h"
 #include "beep.h"
 #include "key.h"
+#include "lcd.h"
 
 #include "Main.h"
 #include "stm32f4xx_rcc.h"
@@ -21,9 +22,9 @@
 // data definition
 #define proNum 100
 #define frequence 50
-#define dt 20
+#define dt 0.02
 #define capacity 256
-#define peakCapacity 50
+#define peakCapacity 10
 #define delta_thres 20
 
 #define MIN(A,B) ((A)<(B) ? (A):(B))
@@ -36,7 +37,7 @@ u8 M=8;  // M = len(bArr) - 1; N=len(aArr) - 1
 u8 N=8;
 u8 flag;
 u8 length,accBufBegin,accBufEnd,yawBufBegin,yawBufEnd;
-float32_t accBuf[capacity][3];
+float32_t accBuf[3][capacity];
 float32_t yawBuf[capacity];
 float32_t global_x=0,global_y=0;
 
@@ -63,6 +64,7 @@ typedef struct peak
 // function declaration
 void saveYaw(unsigned char rxBuffer[]);
 void saveAcc(unsigned char rxBuffer[]);
+void showYaw(unsigned char rxBuffer[]);
 void IIRFilter(float32_t xArr[],float32_t yArr[],u8 tmpLength);
 u8 findPeaks(float32_t filteredAcc[], float32_t peaksInfo[3][peakCapacity],u8 tmpLength);
 
@@ -91,7 +93,7 @@ void CopeSerial2Data(unsigned char ucData)
 		switch(ucRxBuffer[1])//判断数据是哪种数据，然后将其拷贝到对应的结构体中，有些数据包需要通过上位机打开对应的输出后，才能接收到这个数据包的数据
 		{
 			case 0x50:
-				delay_ms(100);
+				//delay_ms(100);
 				break;
 				//memcpy(&stcTime,&ucRxBuffer[2],8);break;//memcpy为编译器自带的内存拷贝函数，需引用"string.h"，将接收缓冲区的字符拷贝到数据结构体里面，从而实现数据的解析。
 			case 0x51:	
@@ -101,6 +103,9 @@ void CopeSerial2Data(unsigned char ucData)
 			case 0x52:
 				saveYaw(ucRxBuffer);
 				yawCnt++;
+				break;
+			case 0x53:
+				//showYaw(ucRxBuffer);
 				break;
 			default:
 				break;
@@ -174,11 +179,15 @@ int main(void)
 	NVIC_PriorityGroupConfig(NVIC_PriorityGroup_2);
 	Initial_UART1(115200);//接PC的串口
 	Initial_UART2(115200);//接JY-901模块的串口	
+	LED_Init();
+	LCD_Init();
+	POINT_COLOR=RED;
+	LCD_ShowString(30,50,200,16,16,"Explorer STM32F4");	
 	
-	//LED_ON();
+	LED0=0;
 	delay_ms(1000);//等等JY-91初始化完成
-	
-	printf("Location: X:%.3f Y:%.3f\r\n",global_x,global_y);
+	distance=0;
+	printf("%.3f,%.3f,%.3f\r\n",global_x,global_y,distance);
 	
 	while(1)
 	{
@@ -187,10 +196,12 @@ int main(void)
 			u8 cur=accBufBegin;
 			u8 tmpLength=length;
 			mean=0;
-			distance=0;
+			
+			LED0=!LED0;
+			
 			for(i=0;i<tmpLength;i++)
 			{
-				arm_sqrt_f32(accBuf[cur][0]*accBuf[cur][0]+accBuf[cur][1]*accBuf[cur][1]+accBuf[cur][2]*accBuf[cur][2],&accNorm[i]);
+				arm_sqrt_f32(accBuf[0][cur]*accBuf[0][cur]+accBuf[1][cur]*accBuf[1][cur]+accBuf[2][cur]*accBuf[2][cur],&accNorm[i]);
 				mean+=accNorm[i];
 				cur++;
 			}
@@ -221,10 +232,10 @@ int main(void)
 				continue;
 			}
 			
-			cur=yawBufBegin;
-			for(i=0;i<tmpLength;i++)
+			
+			for(i=0,cur=yawBufBegin;i<tmpLength;i++,cur++)
 			{
-				degree=((int)yawBuf[cur]%360)+yawBuf[cur]-(int)yawBuf[cur];
+				degree=yawBuf[cur];  //((int)yawBuf[cur]%360)+yawBuf[cur]-(int)yawBuf[cur];
 				if(degree>=0 && degree<90)
 				{
 					yawSin[i]=degree;
@@ -249,12 +260,12 @@ int main(void)
 			
 			for (i=0; i<peakNum-1;i++)
 			{
-				posStart=(int)peaksInfo[0][i];
-				posEnd=(int)peaksInfo[0][i+1];
+				posStart=(u8)peaksInfo[0][i];
+				posEnd=(u8)peaksInfo[0][i+1];
 				arm_mean_f32(&yawSin[posStart],posEnd-posStart,&yawSinMean);
 				arm_mean_f32(&yawCos[posStart],posEnd-posStart,&yawCosMean);
 				
-				stepFreq=1000.0f/(peaksInfo[2][i+1]*dt);
+				stepFreq=1.0f/(peaksInfo[2][i+1]*dt);
 				arm_var_f32(&accNorm[posStart],posEnd-posStart,&stepAV);
 				stepLength=0.2844f+0.2231f*stepFreq+0.0426f*stepAV;
 				
@@ -262,6 +273,7 @@ int main(void)
 				
 				global_x+=stepLength*arm_cos_f32(yawCosMean/180*PI);
 				global_y+=stepLength*arm_sin_f32(yawSinMean/180*PI);
+				printf("%.3f,%.3f,%.3f\r\n",global_x,global_y,stepLength);
 			}
 			
 			i=(peaksInfo[0][peakNum-1]+peaksInfo[0][peakNum-2])/2;
@@ -269,7 +281,7 @@ int main(void)
 			yawBufBegin+=i;
 			length-=i;
 			
-			printf("Location: X:%.3f Y:%.3f\r\n",global_x,global_y);
+
 			flag=0;
 		}
 	};
@@ -345,12 +357,15 @@ u8 findPeaks(float32_t filteredAcc[], float32_t peaksInfo[3][peakCapacity],u8 tm
 void saveAcc(unsigned char rxBuffer[11])
 {
 	short res[3];
+	char str[50];
 	u8 i;
 	memcpy(res,&rxBuffer[2],6);
 	for(i=0;i<3;i++)
 	{
-		accBuf[accBufEnd][i]=(float32_t)res[i]/32768*16;
+		accBuf[i][accBufEnd]=(float32_t)res[i]/32768*16*9.8;
 	}
+//	sprintf(str,"Acc: %.2f  %.2f  %.2f",accBuf[0][accBufEnd],accBuf[1][accBufEnd],accBuf[2][accBufEnd]);
+//	LCD_ShowString(30,130,200,16,16,str);
 	accBufEnd++;
 	length++;
 }
@@ -358,11 +373,34 @@ void saveAcc(unsigned char rxBuffer[11])
 void saveYaw(unsigned char rxBuffer[11])
 {
 	short res;
-	float32_t wz;
+	char str[50];
+	float32_t wz,degree;
+	u8 tmp=yawBufEnd;
 	memcpy(&res,&rxBuffer[6],2);
 	wz=(float32_t)res/32768*2000;
-	yawBuf[yawBufEnd]=yawBuf[yawBufEnd-1]+wz*dt;
+	degree=yawBuf[--tmp]+wz*dt;
+	if(degree>=0)
+	{
+		yawBuf[yawBufEnd]=((int)degree%360)+degree-(int)degree;
+	}
+	else
+	{
+		yawBuf[yawBufEnd]=((int)degree%360)+360+degree-(int)degree;
+	}
+//	sprintf(str,"Wz: %.2f   Yaw: %.2f",wz,yawBuf[yawBufEnd]);
+//	LCD_ShowString(30,160,200,16,16,str);
 	yawBufEnd++;
+}
+
+void showYaw(unsigned char rxBuffer[11])
+{
+	short res;
+	char str[50];
+	float32_t yaw;
+	memcpy(&res,&rxBuffer[6],2);
+	yaw=(float32_t)res/32786*180;
+	sprintf(str,"rawYaw: %.2f",yaw);
+	LCD_ShowString(30,180,200,16,16,str);
 }
 
 //public static double[] IIRFilter(double[] xArr, double[] bArr, double[] aArr){
