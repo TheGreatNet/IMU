@@ -4,6 +4,8 @@
 #include "beep.h"
 #include "key.h"
 #include "lcd.h"
+#include "hc05.h" 	 
+#include "usart3.h" 	
 
 #include "Main.h"
 #include "stm32f4xx_rcc.h"
@@ -67,6 +69,8 @@ void saveAcc(unsigned char rxBuffer[]);
 void showYaw(unsigned char rxBuffer[]);
 void IIRFilter(float32_t xArr[],float32_t yArr[],u8 tmpLength);
 u8 findPeaks(float32_t filteredAcc[], float32_t peaksInfo[3][peakCapacity],u8 tmpLength);
+void HC05_Role_Show(void);
+void HC05_Sta_Show(void);
 
 
 /////////
@@ -148,8 +152,7 @@ int main(void)
 	float32_t degree;
 	float32_t accNorm[capacity];
 	float32_t accNormFiltered[capacity];
-	
-	SCB->SHCSR |= SCB_SHCSR_BUSFAULTENA_Msk;     // enable busfault
+
 	
 //	// IIR
 //	arm_biquad_cascade_df1_init_f32(&S,numStages,(float32_t*)IIRCoeffs,(float32_t*)IIRState);   //reset state each time.
@@ -173,21 +176,33 @@ int main(void)
 //		testCustom[i] = res;
 //	}
 	
-	//USB_Config();		//配置USB-HID
 	SysTick_init(72,10);//设置时钟频率
 	//NVIC_Configuration();
 	NVIC_PriorityGroupConfig(NVIC_PriorityGroup_2);
 	Initial_UART1(115200);//接PC的串口
 	Initial_UART2(115200);//接JY-901模块的串口	
 	LED_Init();
+	
 	LCD_Init();
 	POINT_COLOR=RED;
-	LCD_ShowString(30,50,200,16,16,"Explorer STM32F4");	
+//	LCD_ShowString(30,50,200,16,16,"Explorer STM32F4");	
 	
 	LED0=0;
 	delay_ms(1000);//等等JY-91初始化完成
+ 	while(HC05_Init()) 		//初始化ATK-HC05模块  
+	{
+		LCD_ShowString(30,90,200,16,16,"ATK-HC05 Error!"); 
+		delay_ms(500);
+		LCD_ShowString(30,90,200,16,16,"Please Check!!!"); 
+		delay_ms(100);
+	}
+	LCD_ShowString(30,110,200,16,16,"ATK-HC05 Standby!");
+	HC05_Role_Show();
+	delay_ms(100);
+	USART3_RX_STA=0;
+	
 	distance=0;
-	printf("%.3f,%.3f,%.3f\r\n",global_x,global_y,distance);
+	u3_printf("%.3f,%.3f,%.3f\r\n",global_x,global_y,distance);
 	
 	while(1)
 	{
@@ -197,7 +212,8 @@ int main(void)
 			u8 tmpLength=length;
 			mean=0;
 			
-			LED0=!LED0;
+			LED0=!LED0;      // reverse
+			LED1=!HC05_LED;  // low invalid
 			
 			for(i=0;i<tmpLength;i++)
 			{
@@ -265,7 +281,7 @@ int main(void)
 				arm_mean_f32(&yawSin[posStart],posEnd-posStart,&yawSinMean);
 				arm_mean_f32(&yawCos[posStart],posEnd-posStart,&yawCosMean);
 				
-				stepFreq=1.0f/(peaksInfo[2][i+1]*dt);
+				stepFreq=1.0/(peaksInfo[2][i+1]*dt);
 				arm_var_f32(&accNorm[posStart],posEnd-posStart,&stepAV);
 				stepLength=0.2844f+0.2231f*stepFreq+0.0426f*stepAV;
 				
@@ -273,7 +289,7 @@ int main(void)
 				
 				global_x+=stepLength*arm_cos_f32(yawCosMean/180*PI);
 				global_y+=stepLength*arm_sin_f32(yawSinMean/180*PI);
-				printf("%.3f,%.3f,%.3f\r\n",global_x,global_y,stepLength);
+				u3_printf("%.3f,%.3f,%.3f\r\n",global_x,global_y,stepLength);
 			}
 			
 			i=(peaksInfo[0][peakNum-1]+peaksInfo[0][peakNum-2])/2;
@@ -357,7 +373,7 @@ u8 findPeaks(float32_t filteredAcc[], float32_t peaksInfo[3][peakCapacity],u8 tm
 void saveAcc(unsigned char rxBuffer[11])
 {
 	short res[3];
-	char str[50];
+//	char str[50];
 	u8 i;
 	memcpy(res,&rxBuffer[2],6);
 	for(i=0;i<3;i++)
@@ -373,7 +389,7 @@ void saveAcc(unsigned char rxBuffer[11])
 void saveYaw(unsigned char rxBuffer[11])
 {
 	short res;
-	char str[50];
+//	char str[50];
 	float32_t wz,degree;
 	u8 tmp=yawBufEnd;
 	memcpy(&res,&rxBuffer[6],2);
@@ -402,6 +418,19 @@ void showYaw(unsigned char rxBuffer[11])
 	sprintf(str,"rawYaw: %.2f",yaw);
 	LCD_ShowString(30,180,200,16,16,str);
 }
+
+//显示ATK-HC05模块的主从状态
+void HC05_Role_Show(void)
+{
+	if(HC05_Get_Role()==1)LCD_ShowString(30,140,200,16,16,"ROLE:Master");	//主机
+	else LCD_ShowString(30,140,200,16,16,"ROLE:Slave ");			 		//从机
+}
+//显示ATK-HC05模块的连接状态
+void HC05_Sta_Show(void)
+{												 
+	if(HC05_LED)LCD_ShowString(120,140,120,16,16,"STA:Connected ");			//连接成功
+	else LCD_ShowString(120,140,120,16,16,"STA:Disconnect");	 			//未连接				 
+}	 
 
 //public static double[] IIRFilter(double[] xArr, double[] bArr, double[] aArr){
 //        int lenB = bArr.length;
