@@ -8,3 +8,9 @@ keilkilll.bat
 *.uvprojx
 *.uvguix.*
 USER/DebugConfig/
+*.uvproj
+*.uvgui
+*.uvopt
+*.dep
+*.snowc
+*.bak
