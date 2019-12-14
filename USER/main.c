@@ -24,7 +24,7 @@
 // data definition
 #define proNum 100
 #define frequence 50
-#define dt 0.02
+#define dt 0.02f
 #define capacity 256
 #define peakCapacity 10
 #define delta_thres 20
@@ -187,6 +187,7 @@ int main(void)
 	POINT_COLOR=RED;
 //	LCD_ShowString(30,50,200,16,16,"Explorer STM32F4");	
 	
+	
 	LED0=0;
 	delay_ms(1000);//等等JY-91初始化完成
  	while(HC05_Init()) 		//初始化ATK-HC05模块  
@@ -281,7 +282,7 @@ int main(void)
 				arm_mean_f32(&yawSin[posStart],posEnd-posStart,&yawSinMean);
 				arm_mean_f32(&yawCos[posStart],posEnd-posStart,&yawCosMean);
 				
-				stepFreq=1.0/(peaksInfo[2][i+1]*dt);
+				stepFreq=1.0f/(peaksInfo[2][i+1]*dt);
 				arm_var_f32(&accNorm[posStart],posEnd-posStart,&stepAV);
 				stepLength=0.2844f+0.2231f*stepFreq+0.0426f*stepAV;
 				
@@ -378,7 +379,7 @@ void saveAcc(unsigned char rxBuffer[11])
 	memcpy(res,&rxBuffer[2],6);
 	for(i=0;i<3;i++)
 	{
-		accBuf[i][accBufEnd]=(float32_t)res[i]/32768*16*9.8;
+		accBuf[i][accBufEnd]=(float32_t)res[i]/32768*16*9.8f;
 	}
 //	sprintf(str,"Acc: %.2f  %.2f  %.2f",accBuf[0][accBufEnd],accBuf[1][accBufEnd],accBuf[2][accBufEnd]);
 //	LCD_ShowString(30,130,200,16,16,str);

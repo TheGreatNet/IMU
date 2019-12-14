@@ -47,7 +47,7 @@ u8 HC05_Init(void)
 
 	GPIO_SetBits(GPIOF,GPIO_Pin_6);
  	
-	usart3_init(9600);	//初始化串口3为:9600,波特率.
+	usart3_init(115200);	//初始化串口3为:,波特率.
 	
 	while(retry--)
 	{
