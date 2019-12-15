@@ -192,6 +192,7 @@ int main(void)
 	delay_ms(1000);//等等JY-91初始化完成
  	while(HC05_Init()) 		//初始化ATK-HC05模块  
 	{
+		
 		LCD_ShowString(30,90,200,16,16,"ATK-HC05 Error!"); 
 		delay_ms(500);
 		LCD_ShowString(30,90,200,16,16,"Please Check!!!"); 
