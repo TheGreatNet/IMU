@@ -5,7 +5,7 @@ keilkilll.bat
 *.lst
 *.txt
 *.ini
-*.uvprojx
+
 *.uvguix.*
 USER/DebugConfig/
 *.uvproj
