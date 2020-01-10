@@ -33,16 +33,23 @@
 
 double minPeakValue=0.25;
 
-double bArr[9]={1.8321602336960946e-4,0.0,-7.328640934784378e-4,0.0,0.0010992961402176568,0.0,-7.328640934784378e-4,0.0,1.8321602336960946e-4};
-double aArr[9]={1.0,-7.224163591308814,22.958620298726956,-41.926271928661706,48.12271256334232,-35.55142228952962,16.509171846911332,-4.406124281448874,0.5174781997880404};
-u8 M=8;  // M = len(bArr) - 1; N=len(aArr) - 1
-u8 N=8;
+static const double bArr[9]={1.8321602336960946e-4,0.0,-7.328640934784378e-4,0.0,0.0010992961402176568,0.0,-7.328640934784378e-4,0.0,1.8321602336960946e-4};
+static const double aArr[9]={1.0,-7.224163591308814,22.958620298726956,-41.926271928661706,48.12271256334232,-35.55142228952962,16.509171846911332,-4.406124281448874,0.5174781997880404};
+static const u8 M=8;  // M = len(bArr) - 1; N=len(aArr) - 1
+static const u8 N=8;
 u8 flag;
 u8 length,accBufBegin,accBufEnd,yawBufBegin,yawBufEnd;
 float32_t accBuf[3][capacity];
 float32_t yawBuf[capacity];
 float32_t global_x=0,global_y=0;
 
+typedef struct peak
+{
+	u8 location;      
+	float32_t value;  
+	u8 delta;    
+	u8 valid;
+}Peak,*PPeak;
 
 //// IIR
 //float32_t testInput[10]={1,2,3,4,5,6,7,8,9,10};
@@ -55,13 +62,6 @@ float32_t global_x=0,global_y=0;
 //									1,0,-1,1.687640724660825819469778252823743969202,-0.769190930108339165904851597588276490569};
 //arm_biquad_casd_df1_inst_f32 S;
 
-typedef struct peak
-{
-	u8 location;       // ??
-	float32_t value;       // ??
-	u8 delta;    // ?????????
-	u8 valid;
-}Peak,*PPeak;
 
 // function declaration
 void saveYaw(unsigned char rxBuffer[]);
@@ -104,13 +104,13 @@ void CopeSerial2Data(unsigned char ucData)
 				saveAcc(ucRxBuffer);
 				accCnt++;
 				break;
-			case 0x52:
+			case 0x53:
 				saveYaw(ucRxBuffer);
 				yawCnt++;
 				break;
-			case 0x53:
-				//showYaw(ucRxBuffer);
-				break;
+//			case 0x53:
+//				//showYaw(ucRxBuffer);
+//				break;
 			default:
 				break;
 		}
@@ -139,7 +139,7 @@ int main(void)
 
 	u8 i;
 	
-	
+	char str[50];
 	float32_t mean;
 	float32_t peaksInfo[3][peakCapacity];
 	u8 peakNum;
@@ -153,6 +153,9 @@ int main(void)
 	float32_t accNorm[capacity];
 	float32_t accNormFiltered[capacity];
 
+	flag=0;
+	length=accBufBegin=accBufEnd=yawBufBegin=yawBufEnd=0;
+	global_x=global_y=0;
 	
 //	// IIR
 //	arm_biquad_cascade_df1_init_f32(&S,numStages,(float32_t*)IIRCoeffs,(float32_t*)IIRState);   //reset state each time.
@@ -290,7 +293,14 @@ int main(void)
 				
 				global_x+=stepLength*arm_cos_f32(yawCosMean/180*PI);
 				global_y+=stepLength*arm_sin_f32(yawSinMean/180*PI);
-				u3_printf("%.3f,%.3f,%.3f\r\n",global_x,global_y,stepLength);
+				//u3_printf("%.3f/%.3f/%.3f\n",global_x,global_y,stepLength);
+				sprintf(str,"%.3f/%.3f/%.3f\n",global_x,global_y,stepLength);
+				u3_printf(str);
+				LCD_ShowString(30,200,200,16,16,(u8*) str);
+				if (stepLength>5){
+					sprintf(str,"Error:%c/%c/%.3f/%.3f\n",posStart,posEnd,stepAV,stepLength);
+					LCD_ShowString(30,250,200,16,16,(u8*) str);
+				}
 			}
 			
 			i=(peaksInfo[0][peakNum-1]+peaksInfo[0][peakNum-2])/2;
@@ -390,12 +400,13 @@ void saveAcc(unsigned char rxBuffer[11])
 void saveYaw(unsigned char rxBuffer[11])
 {
 	short res;
-//	char str[50];
+	char str[50];
 	float32_t wz,degree;
 	u8 tmp=yawBufEnd;
 	memcpy(&res,&rxBuffer[6],2);
-	wz=(float32_t)res/32768*2000;
-	degree=yawBuf[--tmp]+wz*dt;
+	degree=(float32_t)res/32768*180;
+	//wz=(float32_t)res/32768*2000;
+	//degree=yawBuf[--tmp]+wz*dt;
 	if(degree>=0)
 	{
 		yawBuf[yawBufEnd]=((int)degree%360)+degree-(int)degree;
@@ -404,8 +415,8 @@ void saveYaw(unsigned char rxBuffer[11])
 	{
 		yawBuf[yawBufEnd]=((int)degree%360)+360+degree-(int)degree;
 	}
-//	sprintf(str,"Wz: %.2f   Yaw: %.2f",wz,yawBuf[yawBufEnd]);
-//	LCD_ShowString(30,160,200,16,16,str);
+//	sprintf(str,"Yaw: %.2f",yawBuf[yawBufEnd]);
+//	LCD_ShowString(30,160,200,16,16,(u8*)str);
 	yawBufEnd++;
 }
 
