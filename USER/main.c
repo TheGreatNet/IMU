@@ -63,7 +63,7 @@ void HC05_Sta_Show(void);
 /////////
 int main(void)
 {  
-
+	u8 acccnt;
 	u8 i;
 	u8 report=1;			//默认开启上报
 	u8 key;
@@ -131,10 +131,11 @@ int main(void)
 			mean=0;
 			for(;;)
 			{			
+				acccnt=0;
 				MPU_Get_Accelerometer(&aacx,&aacy,&aacz);	//得到加速度传感器数据
 				if(tempx==aacx&&tempy==aacy&&tempz==aacz)continue;//检测是否有新数据产生,若无，则重新进入循环
 				tempx=aacx;tempy=aacy;tempz=aacz;
-				accBufEnd++;
+				accBufEnd++;acccnt++;
 				aacx=aacx*4*9.8f/65536;
 				aacy=aacy*4*9.8f/65536;
 				aacz=aacz*4*9.8f/65536;
@@ -145,7 +146,7 @@ int main(void)
 				gyroy=gyroy*500/65536;
 				memcpy(&yawBuf[yawBufEnd],&gyroy,2);
 				//tmpLength=accBufEnd-accBufBegin;
-				if(tmpLength==proNum)
+				if(acccnt==proNum)
 				{
 					for(i=1;i<=tmpLength;i++)
 					{
@@ -174,14 +175,14 @@ int main(void)
 				accBufBegin+=tmpLength;
 				yawBufBegin+=tmpLength;
 				length-=tmpLength;
-				flag=0;
+				//flag=0;
 				continue;
 			}
 			
 			if (peakNum==1)
 			{
 				// can't calculate the step with only one peak.
-				flag=0;
+				//flag=0;
 				continue;
 			}
 			
@@ -211,7 +212,7 @@ int main(void)
 				}
 			}
 			
-			for (i=0; i<peakNum-1;i++)
+			for (i=1; i<peakNum;i++)
 			{
 				posStart=(u8)peaksInfo[0][i];
 				posEnd=(u8)peaksInfo[0][i+1];
@@ -235,7 +236,7 @@ int main(void)
 			length-=i;
 			
 
-			flag=0;
+			//flag=0;
 		}
 	
 }
@@ -294,11 +295,6 @@ int main(void)
 //{	
 //	UART2_Put_Char(ucData);//转发串口1收到的数据给串口2（JY模块）
 //}
-
-
-
-
-
 
 void IIRFilter(float32_t xArr[],float32_t yArr[],u8 tmpLength)
 {
