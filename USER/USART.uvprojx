@@ -338,7 +338,7 @@
               <MiscControls></MiscControls>
               <Define>STM32F40_41xxx,USE_STDPERIPH_DRIVER,ARM_MATH_CM4,__CC_ARM,ARM_MATH_MATRIX_CHECK,ARM_MATH_ROUNDING</Define>
               <Undefine></Undefine>
-              <IncludePath>..\CORE;..\SYSTEM\delay;..\SYSTEM\sys;..\SYSTEM\usart;..\FWLIB\STM32F4xx_StdPeriph_Driver\inc;..\USER;..\HARDWARE\LED;..\HARDWARE\BEEP;..\HARDWARE\KEY;..\FWLIB\inc;..\SYSTEM\JY901;..\SYSTEM\DIO;..\DSP;..\DSP\Include;..\HARDWARE\LCD;..\HARDWARE\HC05;..\HARDWARE\TIMER;..\HARDWARE\USART3</IncludePath>
+              <IncludePath>..\CORE;..\SYSTEM\delay;..\SYSTEM\sys;..\SYSTEM\usart;..\FWLIB\STM32F4xx_StdPeriph_Driver\inc;..\USER;..\HARDWARE\LED;..\HARDWARE\BEEP;..\HARDWARE\KEY;..\FWLIB\inc;..\SYSTEM\JY901;..\SYSTEM\DIO;..\DSP;..\DSP\Include;..\HARDWARE\LCD;..\HARDWARE\HC05;..\HARDWARE\TIMER;..\HARDWARE\USART3;..\HARDWARE\MPU6050;..\HARDWARE\IIC;..\HARDWARE\MPU6050\eMPL</IncludePath>
             </VariousControls>
           </Cads>
           <Aads>
@@ -433,9 +433,24 @@
               <FilePath>..\HARDWARE\TIMER\timer.c</FilePath>
             </File>
             <File>
-              <FileName>usart3.c</FileName>
+              <FileName>mpu6050.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\HARDWARE\USART3\usart3.c</FilePath>
+              <FilePath>..\HARDWARE\MPU6050\mpu6050.c</FilePath>
+            </File>
+            <File>
+              <FileName>myiic.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\HARDWARE\IIC\myiic.c</FilePath>
+            </File>
+            <File>
+              <FileName>inv_mpu.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\HARDWARE\MPU6050\eMPL\inv_mpu.c</FilePath>
+            </File>
+            <File>
+              <FileName>inv_mpu_dmp_motion_driver.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\HARDWARE\MPU6050\eMPL\inv_mpu_dmp_motion_driver.c</FilePath>
             </File>
           </Files>
         </Group>
@@ -453,14 +468,19 @@
               <FilePath>..\SYSTEM\sys\sys.c</FilePath>
             </File>
             <File>
-              <FileName>UART1.c</FileName>
+              <FileName>usart1.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\SYSTEM\usart\UART1.c</FilePath>
+              <FilePath>..\SYSTEM\usart\usart1.c</FilePath>
             </File>
             <File>
-              <FileName>UART2.c</FileName>
+              <FileName>usart2.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\SYSTEM\usart\UART2.c</FilePath>
+              <FilePath>..\SYSTEM\usart\usart2.c</FilePath>
+            </File>
+            <File>
+              <FileName>usart3.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\SYSTEM\usart\usart3.c</FilePath>
             </File>
           </Files>
         </Group>
