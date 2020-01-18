@@ -43,9 +43,9 @@ u8 HC05_Init(void)
   GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;//推挽输出
   GPIO_InitStructure.GPIO_Speed = GPIO_Speed_100MHz;//100MHz
   GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_UP;//上拉
-  GPIO_Init(GPIOF, &GPIO_InitStructure); //根据设定参数初始化PF6
+  GPIO_Init(GPIOC, &GPIO_InitStructure); //根据设定参数初始化PF6
 
-	GPIO_SetBits(GPIOF,GPIO_Pin_6);
+	GPIO_SetBits(GPIOC,GPIO_Pin_6);
  	
 	usart3_init(115200);	//初始化串口3为:,波特率.
 	

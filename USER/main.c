@@ -27,7 +27,7 @@
 #define dt 0.02f
 #define capacity 256
 #define peakCapacity 10
-#define delta_thres 20
+#define delta_thres 10
 
 #define MIN(A,B) ((A)<(B) ? (A):(B))
 
