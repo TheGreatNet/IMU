@@ -210,6 +210,7 @@ int main(void)
 	
 	while(1)
 	{
+		LED1=!HC05_LED;  // low invalid
 		if(flag)
 		{
 			u8 cur=accBufBegin;
@@ -217,7 +218,7 @@ int main(void)
 			mean=0;
 			
 			LED0=!LED0;      // reverse
-			LED1=!HC05_LED;  // low invalid
+			
 			
 			for(i=0;i<tmpLength;i++)
 			{
